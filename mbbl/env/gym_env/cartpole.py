@@ -181,8 +181,8 @@ if __name__ == '__main__':
 
     test_env_name = ['gym_cartpole']
     for env_name in test_env_name:
-        test_env = env(env_name, 1234, None)
-        api_env = env(env_name, 1234, None)
+        test_env = env(env_name, 1234, {})
+        api_env = env(env_name, 1234, {})
         api_env.reset()
         ob, reward, _, _ = test_env.reset()
         for _ in range(100):

@@ -147,7 +147,11 @@ class env(base_env_wrapper.base_env):
                 'gym_dfant': 'Ant-v1',
             }
         else:
-            raise NotImplementedError
+            _env_name = {
+                'gym_dfwalker2d': 'Walker2d-v2',
+                'gym_dfhopper': 'Hopper-v2',
+                'gym_dfant': 'Ant-v2',
+            }
 
         # make the environments
         self._env_info = env_register.get_env_info(self._env_name)
@@ -178,17 +182,23 @@ class env(base_env_wrapper.base_env):
                 qpos[2:] = data_dict['start_state'][:self._len_qpos - 2]
                 qvel[:] = data_dict['start_state'][self._len_qpos - 2:]
 
-            # reset the state
-            if self._current_version in ['0.7.4', '0.9.4']:
-                self._env.env.data.qpos = qpos.reshape([-1, 1])
-                self._env.env.data.qvel = qvel.reshape([-1, 1])
-            else:
-                self._env.env.sim.data.qpos = qpos.reshape([-1])
-                self._env.env.sim.data.qvel = qpos.reshape([-1])
+                # reset the state
+                if self._current_version in ['0.7.4', '0.9.4']:
+                    self._env.env.data.qpos = qpos.reshape([-1, 1])
+                    self._env.env.data.qvel = qvel.reshape([-1, 1])
+                else:
+                    sim_state = self._env.env.sim.get_state()
+                    sim_state.qpos[:] = qpos.reshape([-1])
+                    sim_state.qvel[:] = qvel.reshape([-1])
+                    self._env.env.sim.set_state(sim_state)
 
-            self._env.env.model._compute_subtree()  # pylint: disable=W0212
-            self._env.env.model.forward()
-            self._old_ob = self._get_observation()
+                if self._current_version in ['0.7.4', '0.9.4']:
+                    self._env.env.model._compute_subtree()  # pylint: disable=W0212
+                    self._env.env.model.forward()
+                else:
+                    self._env.env.sim.forward()
+
+                self._old_ob = self._get_observation()
 
         self.set_state = set_state
 

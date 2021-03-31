@@ -171,7 +171,17 @@ class env(base_env_wrapper.base_env):
                 'gym_fant30': 'Ant-v1',
             }
         else:
-            raise NotImplementedError
+            _env_name = {
+                'gym_fwalker2d': 'Walker2d-v2',
+                'gym_fhopper': 'Hopper-v2',
+                'gym_fant': 'Ant-v2',
+
+                'gym_fant2': 'Ant-v2',
+                'gym_fant5': 'Ant-v2',
+                'gym_fant10': 'Ant-v2',
+                'gym_fant20': 'Ant-v2',
+                'gym_fant30': 'Ant-v2',
+            }
 
         # make the environments
         self._env_info = env_register.get_env_info(self._env_name)
@@ -211,11 +221,17 @@ class env(base_env_wrapper.base_env):
                 self._env.env.data.qpos = qpos.reshape([-1, 1])
                 self._env.env.data.qvel = qvel.reshape([-1, 1])
             else:
-                self._env.env.sim.data.qpos = qpos.reshape([-1])
-                self._env.env.sim.data.qvel = qpos.reshape([-1])
+                sim_state = self._env.env.sim.get_state()
+                sim_state.qpos[:] = qpos.reshape([-1])
+                sim_state.qvel[:] = qvel.reshape([-1])
+                self._env.env.sim.set_state(sim_state)
+        
+            if self._current_version in ['0.7.4', '0.9.4']:
+                self._env.env.model._compute_subtree()  # pylint: disable=W0212
+                self._env.env.model.forward()
+            else:
+                self._env.env.sim.forward()
 
-            self._env.env.model._compute_subtree()  # pylint: disable=W0212
-            self._env.env.model.forward()
             self._old_ob = self._get_observation()
 
         self.set_state = set_state
@@ -429,8 +445,8 @@ if __name__ == '__main__':
     test_env_name = ['gym_cheetah', 'gym_walker2d', 'gym_hopper',
                      'gym_swimmer', 'gym_ant']
     for env_name in test_env_name:
-        test_env = env(env_name, 1234, None)
-        api_env = env(env_name, 1234, None)
+        test_env = env(env_name, 1234, {})
+        api_env = env(env_name, 1234, {})
         api_env.reset()
         ob, reward, _, _ = test_env.reset()
         for _ in range(100):

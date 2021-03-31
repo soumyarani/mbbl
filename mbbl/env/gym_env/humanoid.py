@@ -100,15 +100,12 @@ class env(base_env_wrapper.base_env):
                 'gym_slimhumanoid': 'Humanoid-v1',
                 'gym_nostopslimhumanoid': 'Humanoid-v1',
             }
-        elif self._current_version == NotImplementedError:
-            _env_name = {
-                'gym_slimhumanoid': 'Humanoid-v2',
-                'gym_humanoid': 'Humanoid-v2',
-                'gym_nostophumanoid': 'Humanoid-v2',
-            }
-
         else:
-            raise ValueError("Invalid gym-{}".format(self._current_version))
+            _env_name = {
+                'gym_humanoid': 'Humanoid-v2',
+                'gym_slimhumanoid': 'Humanoid-v2',
+                'gym_nostopslimhumanoid': 'Humanoid-v2',
+            }
 
         # make the environments
         self._env_info = env_register.get_env_info(self._env_name)
@@ -150,11 +147,17 @@ class env(base_env_wrapper.base_env):
                 self._env.env.data.qpos = qpos.reshape([-1, 1])
                 self._env.env.data.qvel = qvel.reshape([-1, 1])
             else:
-                self._env.env.sim.data.qpos = qpos.reshape([-1])
-                self._env.env.sim.data.qvel = qpos.reshape([-1])
+                sim_state = self._env.env.sim.get_state()
+                sim_state.qpos[:] = qpos.reshape([-1])
+                sim_state.qvel[:] = qvel.reshape([-1])
+                self._env.env.sim.set_state(sim_state)
 
-            self._env.env.model._compute_subtree()  # pylint: disable=W0212
-            self._env.env.model.forward()
+            if self._current_version in ['0.7.4', '0.9.4']:
+                self._env.env.model._compute_subtree()  # pylint: disable=W0212
+                self._env.env.model.forward()
+            else:
+                self._env.env.sim.forward()
+
             self._old_ob = self._get_observation()
         self.set_state = set_state
 

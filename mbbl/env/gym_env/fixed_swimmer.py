@@ -100,11 +100,15 @@ class env(base_env_wrapper.base_env):
                 'gym_fwalker2d': 'Walker2d-v1',
                 'gym_fhopper': 'Hopper-v1',
                 'gym_fant': 'Ant-v1',
-
                 'gym_fswimmer': 'Fixswimmer-v1',
             }
         else:
-            raise NotImplementedError
+            _env_name = {
+                'gym_fwalker2d': 'Walker2d-v1',
+                'gym_fhopper': 'Hopper-v1',
+                'gym_fant': 'Ant-v1',
+                'gym_fswimmer': 'Fixswimmer-v1',
+            }
 
         import mbbl.env.gym_env.fix_swimmer
 
@@ -135,14 +139,21 @@ class env(base_env_wrapper.base_env):
 
             # reset the state
             if self._current_version in ['0.7.4', '0.9.4']:
-                self._env.data.qpos = qpos.reshape([-1, 1])
-                self._env.data.qvel = qvel.reshape([-1, 1])
+                self._env.env.data.qpos = qpos.reshape([-1, 1])
+                self._env.env.data.qvel = qvel.reshape([-1, 1])
             else:
-                self._env.env.sim.data.qpos = qpos.reshape([-1])
-                self._env.env.sim.data.qvel = qpos.reshape([-1])
+                sim_state = self._env.env.sim.get_state()
+                sim_state.qpos[:] = qpos.reshape([-1])
+                sim_state.qvel[:] = qvel.reshape([-1])
+                self._env.env.sim.set_state(sim_state)
 
-            self._env.model._compute_subtree()  # pylint: disable=W0212
-            self._env.model.forward()
+            if self._current_version in ['0.7.4', '0.9.4']:
+                self._env.env.model._compute_subtree()  # pylint: disable=W0212
+                self._env.env.model.forward()
+            else:
+                self._env.env.sim.forward()
+
+            self._old_ob = self._get_observation()
         self.set_state = set_state
 
         def fdynamics(data_dict):
@@ -311,8 +322,8 @@ if __name__ == '__main__':
     test_env_name = ['gym_cheetah', 'gym_walker2d', 'gym_hopper',
                      'gym_swimmer', 'gym_ant']
     for env_name in test_env_name:
-        test_env = env(env_name, 1234, None)
-        api_env = env(env_name, 1234, None)
+        test_env = env(env_name, 1234, {})
+        api_env = env(env_name, 1234, {})
         api_env.reset()
         ob, reward, _, _ = test_env.reset()
         for _ in range(100):

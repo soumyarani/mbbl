@@ -109,8 +109,7 @@ class env(base_env_wrapper.base_env):
                 'gym_swimmer': 'Swimmer-v1',
                 'gym_ant': 'Ant-v1',
             }
-        else: # self._current_version == NotImplementedError:
-            # TODO: other gym versions here
+        else:
             _env_name = {
                 'gym_cheetah': 'HalfCheetah-v2',
                 'gym_walker2d': 'Walker2d-v2',
@@ -118,9 +117,6 @@ class env(base_env_wrapper.base_env):
                 'gym_swimmer': 'Swimmer-v2',
                 'gym_ant': 'Ant-v2',
             }
-
-        #else:
-        #    raise ValueError("Invalid gym-{}".format(self._current_version))
 
         # make the environments
         self._env_info = env_register.get_env_info(self._env_name)
@@ -153,14 +149,20 @@ class env(base_env_wrapper.base_env):
 
             # reset the state
             if self._current_version in ['0.7.4', '0.9.4']:
-                self._env.env.data.qpos[:] = qpos.reshape([-1, 1])
-                self._env.env.data.qvel[:] = qvel.reshape([-1, 1])
+                self._env.env.data.qpos = qpos.reshape([-1, 1])
+                self._env.env.data.qvel = qvel.reshape([-1, 1])
             else:
-                self._env.env.sim.data.qpos[:] = qpos.reshape([-1])
-                self._env.env.sim.data.qvel[:] = qpos.reshape([-1])
+                sim_state = self._env.env.sim.get_state()
+                sim_state.qpos[:] = qpos.reshape([-1])
+                sim_state.qvel[:] = qvel.reshape([-1])
+                self._env.env.sim.set_state(sim_state)
 
-            #self._env.env.sim._compute_subtree()  # pylint: disable=W0212
-            self._env.env.sim.forward()
+            if self._current_version in ['0.7.4', '0.9.4']:
+                self._env.env.model._compute_subtree()  # pylint: disable=W0212
+                self._env.env.model.forward()
+            else:
+                self._env.env.sim.forward()
+
             self._old_ob = self._get_observation()
 
         self.set_state = set_state
@@ -318,8 +320,8 @@ if __name__ == '__main__':
     test_env_name = ['gym_cheetah', 'gym_walker2d', 'gym_hopper',
                      'gym_swimmer', 'gym_ant']
     for env_name in test_env_name:
-        test_env = env(env_name, 1234, None)
-        api_env = env(env_name, 1234, None)
+        test_env = env(env_name, 1234, [])
+        api_env = env(env_name, 1234, [])
         api_env.reset()
         ob, reward, _, _ = test_env.reset()
         for _ in range(100):

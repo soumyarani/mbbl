@@ -20,12 +20,12 @@ setuptools.setup(
 """
         "pyquaternion",
         "beautifulsoup4",
-        "Box2D>=2.3.2",
+        "Box2D",
         "num2words",
         "six",
         "tensorboard_logger",
-        "tensorflow==1.12.0",
+        "tensorflow",
         "termcolor",
-        "gym[mujoco]==0.7.4",
-        "mujoco-py==0.5.7",
+        "gym[mujoco]",
+        "mujoco-py",
 """

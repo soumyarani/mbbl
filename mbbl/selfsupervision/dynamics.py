@@ -119,14 +119,18 @@ class Dynamics:
 
         return [loss_latent, loss_invlatent, loss_forward]
 
-state_size = 10
-action_size = 4
-latent_size = 32
-learning_rate = 0.001
+    def get_latent_states(self, state, action, _next_state):
 
-state = np.random.rand(state_size)
-action = np.random.rand(action_size).reshape((1,action_size))
-next_state = np.random.rand(state_size)
+        return self._sess.run(self._merged_latent_states, {self._state: state, self._action: action, self._next_state: next_state})
+
+state_size = 160
+action_size = 12
+latent_size = 32
+learning_rate = 0.01
+
+# state = np.random.rand(state_size)
+# action = np.random.rand(action_size).reshape((1,action_size))
+# next_state = np.random.rand(state_size)
 
 # sess = tf.Session()
 
@@ -137,6 +141,11 @@ next_state = np.random.rand(state_size)
 
 # model.update(state, action, next_state)
 # print(model.predict(state, action))
+
+with open('./test_trajectory.npy', 'rb') as f:
+    full_trajectory = np.load(f, allow_pickle=True)
+
+num_states = len(full_trajectory)
 
 with tf.Session() as sess:
 
@@ -150,11 +159,20 @@ with tf.Session() as sess:
 
     i = 0
 
-    while i < 2000:
+    for i in range(num_states):
+
+        state_trajectory = full_trajectory[i]
+
+        state = state_trajectory['state']
+        action = state_trajectory['action'].reshape((1,action_size))
+        next_state = state_trajectory['next_state']
+
         model.update(state, action, next_state)
         print(model.get_all_losses(state, action, next_state))
         i += 1
 
     results = model.predict(state, action)
+
+    print(model.get_latent_states(state, action, next_state))
 
 print(results - next_state)

@@ -1,5 +1,5 @@
 #######################################################################################
-# Dynamics Class
+# Encoder Class
 # Author: Utkarsh Aashu Mishra (utkarsh75477@gmail.com)
 #######################################################################################
 
@@ -7,36 +7,33 @@ import numpy as np
 import tensorflow as tf
 
 
-class Dynamics:
+class Encoder:
 
     def __init__(self,
                 sess=None,
-                state_dim = None,
-                action_dim = None,
+                input_dim = None,
+                output_dim = None,
                 hidden_sizes = None,
                 learning_rate = 0.001,
-                hidden_activation = tf.nn.relu,
-                output_activation = tf.nn.relu,
+                hidden_activation = tf.nn.tanh,
+                output_activation = tf.nn.tanh,
                 w_init=tf.contrib.layers.xavier_initializer(),
                 b_init=tf.zeros_initializer()
                 ):
 
         self._sess = sess
-        self._state = tf.placeholder(dtype=tf.float32, shape=state_dim, name='state')
-        self._action = tf.placeholder(dtype=tf.float32, shape=action_dim, name='action')
-        self._next_state = tf.placeholder(dtype=tf.float32, shape=state_dim, name='next_state')
+        self._state_1 = tf.placeholder(dtype=tf.float32, shape=input_dim, name='state_1')
+        self._optim_grads = tf.placeholder(dtype=tf.float32, shape=output_dim, name='action_grads')
 
-        ############################# Feature Dynamics Layer ###########################
+        ###################### Encoded Feature Extraction Layer ########################
 
-        self._merged_state_action = tf.concat([self._state, self._action], 0)
-
-        with tf.variable_scope('dynamics', reuse=tf.AUTO_REUSE):
+        with tf.variable_scope('encoder', reuse=tf.AUTO_REUSE):
 
             with tf.GradientTape() as tape:
 
-                tape.watch([self._state, self._action, self._merged_state_action])
+                tape.watch([self._state_1])
 
-                layer = tf.layers.dense(inputs=tf.expand_dims(self._merged_state_action, 0),
+                layer = tf.layers.dense(inputs=tf.expand_dims(self._state_1, 0),
                                         units=hidden_sizes[0], 
                                         activation=hidden_activation, 
                                         kernel_initializer=w_init,
@@ -53,32 +50,34 @@ class Dynamics:
                                             name='layer_'+str(i+1))
 
                 layer = tf.layers.dense(inputs=layer, 
-                                        units=state_dim, 
+                                        units=output_dim, 
                                         activation=output_activation, 
                                         kernel_initializer=w_init,
                                         bias_initializer=b_init,
                                         name='layer_out')
 
-                self.layer_out = tf.layers.flatten(layer)
+                self.layer_out_1 = tf.layers.flatten(layer)
 
-                self.transitioned_state = tf.squeeze(self.layer_out)
+                self.encoded_state = tf.squeeze(self.layer_out_1)
 
-                self._state_gradients = tape.gradient(self.transitioned_state, self._merged_state_action)
-
-            self._loss = tf.reduce_mean(tf.square(self.transitioned_state - self._next_state))
+                self.feature_gradients = tape.gradient(self.encoded_state, self._state_1)
 
             self._optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-            self._train_op = self._optimizer.minimize(self._loss)
 
-    def predict(self, state, action):
-        return self._sess.run(self.transitioned_state, {self._state: state, self._action: action})
+            params_grad = tf.gradients(self.encoded_state, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES), -self._optim_grads)
+            grads = zip(params_grad, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES))
 
-    def calc_gradients(self, state, action):
-        return self._sess.run(self._state_gradients, {self._state: state, self._action: action})
+            self._train_op = self._optimizer.apply_gradients(grads)
 
-    def update(self, state, action, next_state):
+    def predict(self, state):
+        return self._sess.run(self.encoded_state, {self._state_1: state})
+
+    def calc_gradients(self, state):
+        return self._sess.run(self.feature_gradients, {self._state_1: state})
+
+    def update(self, state, optim_grads):
 
         self._sess.run(self._train_op, 
-                        {self._state: state,
-                        self._action: action,
-                        self._next_state: next_state})
+                        {self._state_1: state, 
+                        self._optim_grads: optim_grads
+                        })

@@ -84,48 +84,41 @@ class WrappedEnv(gym.Env):
                                 reward=reward, 
                                 next_state=next_state)
 
+        batch_state = self._state
+        batch_action = action
+        batch_reward = reward
+        batch_next_state = next_state
+
+        batch_encoded_state = self._encoder.predict(state=batch_state)
+        batch_encoded_next_state = self._encoder.predict(state=batch_next_state)
+
+        self._dynamics.update(state=batch_encoded_state, 
+                            action=batch_action,
+                            next_state=batch_encoded_next_state)
+
+        self._inv_dynamics.update(state=batch_encoded_state, 
+                            action=batch_action,
+                            next_state=batch_encoded_next_state)
+
+        dyn_gradients = self._dynamics.calc_gradients(state=batch_encoded_state,
+                                                                                action=action)
+        invdyn_gradients = self._inv_dynamics.calc_gradients(state=batch_encoded_state,
+                                                                                next_state=batch_encoded_next_state)
+
+        encoder_gradients = self._encoder.calc_gradients(state=batch_state)
+
+        dyn_state_gradients = dyn_gradients[:self._feature_dim]
+        dyn_action_gradients = dyn_gradients[self._feature_dim:]
+        invdyn_state_gradients = invdyn_gradients[:self._feature_dim]
+        invdyn_nstate_gradients = invdyn_gradients[self._feature_dim:]
+
+        encoder_optim_grads = np.dot(invdyn_state_gradients, invdyn_nstate_gradients)*dyn_state_gradients
+
+        self._encoder.update(state=batch_state,
+                            optim_grads=encoder_optim_grads
+                            )
+
         self._state = next_state
-
-        if self._state_trajectory.size() > self._encoder_training_threshold:
-
-            state_trajectory_batch = self._state_trajectory.sample_batch(batch_size=self._encoder_training_batch_size)
-
-            state_batch, action_batch, reward_batch, next_state_batch = state_trajectory_batch
-
-            for i in range(len(state_batch)):
-                batch_state = state_batch[i]
-                batch_action = action_batch[i]
-                batch_reward = reward_batch[i]
-                batch_next_state = next_state_batch[i]
-
-                batch_encoded_state = self._encoder.predict(state=batch_state)
-                batch_encoded_next_state = self._encoder.predict(state=batch_next_state)
-
-                self._dynamics.update(state=batch_encoded_state, 
-                                    action=batch_action,
-                                    next_state=batch_encoded_next_state)
-
-                self._inv_dynamics.update(state=batch_encoded_state, 
-                                    action=batch_action,
-                                    next_state=batch_encoded_next_state)
-
-                dyn_gradients = self._dynamics.calc_gradients(state=batch_encoded_state,
-                                                                                        action=action)
-                invdyn_gradients = self._inv_dynamics.calc_gradients(state=batch_encoded_state,
-                                                                                        next_state=batch_encoded_next_state)
-
-                encoder_gradients = self._encoder.calc_gradients(state=batch_state)
-
-                dyn_state_gradients = dyn_gradients[:self._feature_dim]
-                dyn_action_gradients = dyn_gradients[self._feature_dim:]
-                invdyn_state_gradients = invdyn_gradients[:self._feature_dim]
-                invdyn_nstate_gradients = invdyn_gradients[self._feature_dim:]
-
-                encoder_optim_grads = np.dot(invdyn_state_gradients, invdyn_nstate_gradients)*dyn_state_gradients
-
-                self._encoder.update(state=batch_state,
-                                    optim_grads=encoder_optim_grads
-                                    )
 
 
         return encoded_next_state, reward, terminal, info

@@ -42,6 +42,18 @@ def parse_args():
 
     return parser.parse_args()
 
+def random_run_for_encoder_training(env, num_epochs, num_iters):
+
+    for epoch in range(num_epochs):
+        print("Training for Epoch: {}".format(epoch))
+        for j in range(num_iters):
+            _, _, done, _ = env.step(env.action_space.sample())
+
+            if done:
+                env.reset()
+
+    return env
+
 
 def main():
     args = parse_args()
@@ -83,6 +95,9 @@ def main():
 
             env = make_env(use_encoder=use_encoder)
 
+            if use_encoder:
+                env = random_run_for_encoder_training(env, num_epochs = 200, num_iters=500)
+
             sess.run(tf.global_variables_initializer())
 
             n_actions = env.action_space.shape[-1]
@@ -122,6 +137,9 @@ def main():
             from stable_baselines.common.callbacks import CheckpointCallback
     
             env = make_env(use_encoder=use_encoder)
+
+            if use_encoder:
+                env = random_run_for_encoder_training(env, num_epochs = 200, num_iters=500)
 
             sess.run(tf.global_variables_initializer())
 

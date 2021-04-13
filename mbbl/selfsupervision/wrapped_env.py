@@ -20,7 +20,6 @@ class WrappedEnv(gym.Env):
                 env_name=None,
                 feature_dim=None,
                 encoder_gamma=None,
-                encoder_training_batch=None,
                 encoder_hidden_size=None,
                 dynamics_hidden_size=None,
                 invdyn_hidden_size=None,
@@ -37,9 +36,6 @@ class WrappedEnv(gym.Env):
         self._feature_dim = feature_dim
         self._encoder_gamma = encoder_gamma
         self._experience_buffer_size = 50000
-        self._encoder_training_batch_size = encoder_training_batch
-        self._encoder_training_threshold = encoder_training_batch*0.8
-        self._state_trajectory = ReplayBuffer(buffer_size=self._experience_buffer_size)
 
         self.observation_space = spaces.Box(np.array([-np.inf] * self._feature_dim),
                                   np.array([np.inf] * self._feature_dim))
@@ -78,11 +74,6 @@ class WrappedEnv(gym.Env):
         next_state, reward, terminal, info = self._env.step(action)
 
         encoded_next_state = self._encoder.predict(state=next_state)
-
-        self._state_trajectory.add(state=self._state, 
-                                action=action, 
-                                reward=reward, 
-                                next_state=next_state)
 
         batch_state = self._state
         batch_action = action

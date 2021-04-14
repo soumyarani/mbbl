@@ -75,7 +75,6 @@ def main():
                                 env_name=env_name,
                                 feature_dim=10,
                                 encoder_gamma=0.98,
-                                encoder_training_batch=500,
                                 encoder_hidden_size=64,
                                 dynamics_hidden_size=64,
                                 invdyn_hidden_size=64,
@@ -94,11 +93,9 @@ def main():
             from stable_baselines import DDPG
 
             env = make_env(use_encoder=use_encoder)
-
+            sess.run(tf.global_variables_initializer())
             if use_encoder:
                 env = random_run_for_encoder_training(env, num_epochs = 200, num_iters=500)
-
-            sess.run(tf.global_variables_initializer())
 
             n_actions = env.action_space.shape[-1]
             param_noise = None
@@ -137,11 +134,9 @@ def main():
             from stable_baselines.common.callbacks import CheckpointCallback
     
             env = make_env(use_encoder=use_encoder)
-
+            sess.run(tf.global_variables_initializer())
             if use_encoder:
                 env = random_run_for_encoder_training(env, num_epochs = 200, num_iters=500)
-
-            sess.run(tf.global_variables_initializer())
 
             policy_kwargs = dict(act_fun=tf.nn.tanh, layers=[128, 128])
 

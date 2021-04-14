@@ -61,7 +61,7 @@ def main():
     agent = args.agent
     output = args.output
     use_encoder = args.use_encoder
-    time_steps = int(2e6)
+    time_steps = int(1e7)
     env_name = 'HalfCheetah-v2'
 
     tf.reset_default_graph()
@@ -75,12 +75,12 @@ def main():
                                 env_name=env_name,
                                 feature_dim=10,
                                 encoder_gamma=0.98,
-                                encoder_hidden_size=64,
-                                dynamics_hidden_size=64,
-                                invdyn_hidden_size=64,
-                                encoder_lr=0.001,
-                                dynamics_lr=0.001,
-                                invdyn_lr=0.001)
+                                encoder_hidden_size=128,
+                                dynamics_hidden_size=256,
+                                invdyn_hidden_size=256,
+                                encoder_lr=0.0003,
+                                dynamics_lr=0.0003,
+                                invdyn_lr=0.0003)
             else:
                 return gym.make(env_name)
 
@@ -103,12 +103,12 @@ def main():
                 mean=np.zeros(n_actions),
                 sigma=float(0.22) * np.ones(n_actions))
 
-            policy_kwargs = dict(act_fun=tf.nn.tanh, layers=[128, 128])
+            policy_kwargs = dict(act_fun=tf.nn.tanh, layers=[64, 64])
 
             model = DDPG(MlpPolicy,
                          env,
-                         gamma=0.95,
-                         batch_size=256,
+                         gamma=0.99,
+                         batch_size=128,
                          verbose=1,
                          param_noise=param_noise,
                          action_noise=action_noise,
@@ -138,7 +138,7 @@ def main():
             if use_encoder:
                 env = random_run_for_encoder_training(env, num_epochs = 200, num_iters=500)
 
-            policy_kwargs = dict(act_fun=tf.nn.tanh, layers=[128, 128])
+            policy_kwargs = dict(act_fun=tf.nn.tanh, layers=[64, 64])
 
             model = PPO2(MlpPolicy,
                          env,

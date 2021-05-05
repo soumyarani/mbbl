@@ -26,7 +26,10 @@ class Memory(object):
             return Transition(*zip(*self.memory))
         else:  # sample with size: batch_size
             random_batch = random.sample(self.memory, batch_size)
-            return Transition(*zip(*random_batch))
+            permuted_batch = random.sample(random_batch, batch_size)
+            return Transition(*zip(*random_batch)), Transition(*zip(*permuted_batch)) 
+
+    
 
     def __len__(self):
         return len(self.memory)

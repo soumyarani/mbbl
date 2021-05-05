@@ -90,9 +90,12 @@ class TD3:
 
         self.running_state = ZFilter((num_states,), clip=5)
 
+        self.num_states = num_states
+        self.encodings = Encoder(self.num_states, self.dim_latent, self.num_actions)
+
         if self.model_path:
-            print("Loading Saved Model {}_td3.p".format(self.env_id))
-            self.policy_net, self.value_net_1, self.value_net_2, self.running_state = pickle.load(
+            print("Loading Saved Model {}_td3_encoding.p".format(self.env_id))
+            self.policy_net, self.value_net_1, self.value_net_2, self.running_state, self.encodings.encoder, self.encodings.forward_dynamics, self.encodings.inverse_dynamics = pickle.load(
                 open('{}/{}_td3.p'.format(self.model_path, self.env_id), "rb"))
 
         self.policy_net_target.load_state_dict(self.policy_net.state_dict())
@@ -105,9 +108,6 @@ class TD3:
             self.value_net_1.parameters(), lr=self.lr_v)
         self.optimizer_v_2 = optim.Adam(
             self.value_net_2.parameters(), lr=self.lr_v)
-
-        self.num_states = num_states
-        self.encodings = Encoder(self.num_states, self.dim_latent, self.num_actions)
 
     def choose_action(self, state, noise_scale):
         """select action"""
@@ -237,5 +237,5 @@ class TD3:
     def save(self, save_path):
         """save model"""
         check_path(save_path)
-        pickle.dump((self.policy_net, self.value_net_1, self.value_net_2, self.running_state),
-                    open('{}/{}_td3.p'.format(save_path, self.env_id), 'wb'))
+        pickle.dump((self.policy_net, self.value_net_1, self.value_net_2, self.running_state, self.encodings.encoder, self.encodings.forward_dynamics, self.encodings.inverse_dynamics),
+                    open('{}/{}_td3_encoding.p'.format(save_path, self.env_id), 'wb'))

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import pickle
-
+import random
 import numpy as np
 import torch
 import torch.optim as optim
@@ -14,10 +14,13 @@ from file_util import check_path
 from torch_util import device, FLOAT
 from zfilter import ZFilter
 
+from encoder import Encoder
+
 
 class TD3:
     def __init__(self,
                  env_id,
+                 dim_latent,
                  render=False,
                  num_process=1,
                  memory_size=1000000,
@@ -56,6 +59,7 @@ class TD3:
         self.policy_update_delay = policy_update_delay
         self.model_path = model_path
         self.seed = seed
+        self.dim_latent = dim_latent
 
         self._init_model()
 
@@ -101,6 +105,9 @@ class TD3:
             self.value_net_1.parameters(), lr=self.lr_v)
         self.optimizer_v_2 = optim.Adam(
             self.value_net_2.parameters(), lr=self.lr_v)
+
+        self.num_states = num_states
+        self.encodings = Encoder(self.num_states, self.dim_latent, self.num_actions)
 
     def choose_action(self, state, noise_scale):
         """select action"""
@@ -166,9 +173,8 @@ class TD3:
 
                 if global_steps >= self.min_update_step and global_steps % self.update_step == 0:
                     for k in range(self.update_step):
-                        batch = self.memory.sample(
-                            self.batch_size)  # random sample batch
-                        self.update(batch, k)
+                        batch, permuted_batch = self.memory.sample(self.batch_size)  # random sample batch
+                        self.update(batch, permuted_batch, k)
 
                 if done or num_steps >= self.step_per_iter:
                     break
@@ -200,7 +206,9 @@ class TD3:
         writer.add_scalar("max reward", log['max_episode_reward'], i_iter)
         writer.add_scalar("num steps", log['num_steps'], i_iter)
 
-    def update(self, batch, k_iter):
+        writer = self.encodings.update_writer(writer, i_iter)
+
+    def update(self, batch, batch2, k_iter):
         """learn model"""
         batch_state = FLOAT(batch.state).to(device)
         batch_action = FLOAT(batch.action).to(device)
@@ -214,6 +222,17 @@ class TD3:
                                   batch_action, batch_reward, batch_next_state, batch_mask, self.gamma, self.polyak,
                                   self.target_action_noise_std, self.target_action_noise_clip, self.action_high,
                                   k_iter % self.policy_update_delay == 0)
+
+        
+        batch_state2 = FLOAT(batch2.state).to(device)
+        batch_action2 = FLOAT(batch2.action).to(device)
+        batch_reward2 = FLOAT(batch2.reward).to(device)
+        batch_next_state2 = FLOAT(batch2.next_state).to(device)
+        batch_mask2 = FLOAT(batch2.mask).to(device)
+
+        self.encodings.update_encoder(batch_state, batch_action, batch_reward, batch_next_state, 
+                                    batch_state2, batch_action2, batch_reward2, batch_next_state2)
+
 
     def save(self, save_path):
         """save model"""

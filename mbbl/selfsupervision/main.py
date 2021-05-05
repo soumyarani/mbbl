@@ -60,7 +60,7 @@ def main():
     algorithm = args.algo
     agent = args.agent
     output = args.output
-    use_encoder = args.use_encoder
+    use_encoder = './results/' + args.use_encoder + '/'
     time_steps = int(1e7)
     env_name = 'HalfCheetah-v2'
 

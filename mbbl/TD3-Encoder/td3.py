@@ -200,11 +200,11 @@ class TD3:
               f"average reward: {log['avg_reward']: .4f}")
 
         # record reward information
-        writer.add_scalar("total reward", log['total_reward'], i_iter)
-        writer.add_scalar("average reward", log['avg_reward'], i_iter)
-        writer.add_scalar("min reward", log['min_episode_reward'], i_iter)
-        writer.add_scalar("max reward", log['max_episode_reward'], i_iter)
-        writer.add_scalar("num steps", log['num_steps'], i_iter)
+        writer.add_scalar("rewards/total_reward", log['total_reward'], i_iter)
+        writer.add_scalar("rewards/average_reward", log['avg_reward'], i_iter)
+        writer.add_scalar("rewards/min_reward", log['min_episode_reward'], i_iter)
+        writer.add_scalar("rewards/max_reward", log['max_episode_reward'], i_iter)
+        writer.add_scalar("rewards/num_steps", log['num_steps'], i_iter)
 
         writer = self.encodings.update_writer(writer, i_iter)
 

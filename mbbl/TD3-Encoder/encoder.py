@@ -115,8 +115,8 @@ class Encoder():
         fd_loss = torch.mean(self.fdyn_loss)
         id_loss = torch.mean(self.idyn_loss)
 
-        writer.add_scalar("encoder loss", enco_loss, i_iter)
-        writer.add_scalar("forward dynamics loss", fd_loss, i_iter)
-        writer.add_scalar("inverse dynamics loss", id_loss, i_iter)
+        writer.add_scalar("encodings/encoder_loss", enco_loss, i_iter)
+        writer.add_scalar("encodings/forward_dynamics_loss", fd_loss, i_iter)
+        writer.add_scalar("encodings/inverse_dynamics_loss", id_loss, i_iter)
 
         return writer

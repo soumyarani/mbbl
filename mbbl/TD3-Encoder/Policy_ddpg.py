@@ -13,7 +13,7 @@ class Policy(nn.Module):
         dim_state,
         dim_action,
         max_action=None,
-        dim_hidden=128,
+        dim_hidden=256,
         activation=nn.LeakyReLU,
     ):
         super(Policy, self).__init__()

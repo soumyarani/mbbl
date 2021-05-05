@@ -10,7 +10,7 @@ def init_weight(m):
 
 
 class Value(nn.Module):
-    def __init__(self, dim_state, dim_action, dim_hidden=128, activation=nn.LeakyReLU):
+    def __init__(self, dim_state, dim_action, dim_hidden=256, activation=nn.LeakyReLU):
         super(Value, self).__init__()
 
         self.dim_state = dim_state

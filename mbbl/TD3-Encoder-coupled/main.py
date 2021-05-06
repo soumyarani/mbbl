@@ -30,7 +30,7 @@ from td3 import TD3
 @click.option("--action_noise", type=float, default=0.2, help="Noise for action")
 @click.option("--policy_update_delay", type=int, default=2, help="Frequency for policy update")
 @click.option("--model_path", type=str, default="trained_models", help="Directory to store model")
-@click.option("--log_path", type=str, default="../log/", help="Directory to save logs")
+@click.option("--log_path", type=str, default="./log/", help="Directory to save logs")
 @click.option("--seed", type=int, default=123, help="Seed for reproducing")
 def main(env_id, dim_latent, render, num_process, lr_p, lr_v, gamma, polyak, target_action_noise_std, target_action_noise_clip,
          explore_size, memory_size, step_per_iter, batch_size, min_update_step, update_step, max_iter, eval_iter,

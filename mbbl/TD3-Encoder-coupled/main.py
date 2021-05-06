@@ -18,8 +18,8 @@ from td3 import TD3
               help="Interpolation factor in polyak averaging for target networks")
 @click.option("--target_action_noise_std", type=float, default=0.2, help="Std for noise of target action")
 @click.option("--target_action_noise_clip", type=float, default=0.5, help="Clip ratio for target action noise")
-@click.option("--explore_size", type=int, default=10000, help="Explore steps before execute deterministic policy")
-@click.option("--memory_size", type=int, default=100000, help="Size of replay memory")
+@click.option("--explore_size", type=int, default=1000, help="Explore steps before execute deterministic policy")
+@click.option("--memory_size", type=int, default=10000, help="Size of replay memory")
 @click.option("--step_per_iter", type=int, default=1000, help="Number of steps of interaction in each iteration")
 @click.option("--batch_size", type=int, default=256, help="Batch size")
 @click.option("--min_update_step", type=int, default=1000, help="Minimum interacts for updating")
@@ -30,7 +30,7 @@ from td3 import TD3
 @click.option("--action_noise", type=float, default=0.2, help="Noise for action")
 @click.option("--policy_update_delay", type=int, default=2, help="Frequency for policy update")
 @click.option("--model_path", type=str, default="trained_models", help="Directory to store model")
-@click.option("--log_path", type=str, default="../log/", help="Directory to save logs")
+@click.option("--log_path", type=str, default="./log/", help="Directory to save logs")
 @click.option("--seed", type=int, default=123, help="Seed for reproducing")
 def main(env_id, dim_latent, render, num_process, lr_p, lr_v, gamma, polyak, target_action_noise_std, target_action_noise_clip,
          explore_size, memory_size, step_per_iter, batch_size, min_update_step, update_step, max_iter, eval_iter,

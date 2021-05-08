@@ -132,7 +132,7 @@ class PPO:
         batch_log_prob = FLOAT(batch.log_prob).to(device)
 
         with torch.no_grad():
-            enco_batch_state = self.encodings.encoder(batch_state)
+            enco_batch_state = self.encodings.encoder.sample_prediction(batch_state)
             batch_value = self.value_net(enco_batch_state)
 
         batch_advantage, batch_return = estimate_advantages(batch_reward, batch_mask, batch_value, self.gamma,

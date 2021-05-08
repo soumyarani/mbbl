@@ -37,7 +37,7 @@ def collect_samples(pid, queue, env, policy, encoder, render, running_state, cus
             
             enco_state = FLOAT(state).unsqueeze(0).to(device)
             with torch.no_grad():
-                enco_state = encoder(enco_state)
+                enco_state = encoder.sample_prediction(enco_state)
             enco_state = enco_state.cpu().numpy()[0]
             state_tensor = FLOAT(enco_state).unsqueeze(0)
             with torch.no_grad():

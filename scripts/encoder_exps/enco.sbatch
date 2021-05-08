@@ -1,6 +1,10 @@
-# see how the encoder td3 and ppo works for the environments in terms of the performance:
-# batch size 8000
-# max_timesteps 2000
+#!/bin/sh
+#SBATCH --job-name=encoder
+#SBATCH --ntasks=60 # Run on a single CPU
+#SBATCH --time=48:00:00 # Time limit hrs:min:sec
+#SBATCH --output=encoder%j.out # Standard output and error log
+#SBATCH --gres=gpu:1
+#SBATCH --partition=q1m_2h-1G
 
 conda activate mbbl
 
@@ -12,3 +16,4 @@ for seed in 1234; do
         python3 mbbl/TD3-vanilla/main.py --env_id ${env_type} --max_iter 2000 --seed ${seed}
     done
 done
+

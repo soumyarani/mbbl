@@ -34,7 +34,7 @@ class MLPnetwork1(nn.Module):
         return value
 
 class MLPnetwork2(nn.Module):
-    def __init__(self, dim_input1, dim_input2, dim_output, dim_hidden=128, activation=nn.LeakyReLU):
+    def __init__(self, dim_input1, dim_input2, dim_output, dim_hidden=128):
         super(MLPnetwork2, self).__init__()
 
         self.dim_input1 = dim_input1
@@ -64,8 +64,8 @@ class Encoder():
         self.state_dim = state_dim
         self.latent_dim = latent_dim
         self.action_dim = action_dim
+        
         self.encoder = MLPnetwork1(self.state_dim, self.latent_dim, dim_hidden=128).to(device)
-        # self.decoder = MLPnetwork1(self.latent_dim, self.state_dim, dim_hidden=128).to(device)
         self.forward_dynamics = MLPnetwork2(self.latent_dim, self.action_dim, self.latent_dim, dim_hidden=128).to(device)
         self.inverse_dynamics = MLPnetwork2(self.latent_dim, self.latent_dim, self.action_dim, dim_hidden=128).to(device)
 
@@ -109,6 +109,8 @@ class Encoder():
         self.optimizer_fdyn.step()
         self.optimizer_idyn.step()
         self.optimizer_encoder.step()
+
+        print(self.forward_dynamics.get_mean_var())
 
     def update_writer(self, writer, i_iter):
 

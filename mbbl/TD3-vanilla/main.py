@@ -8,7 +8,6 @@ from td3 import TD3
 
 @click.command()
 @click.option("--env_id", type=str, default="HalfCheetah-v3", help="Environment Id")
-@click.option("--dim_latent", type=int, default=10, help="Number of Latent Observations")
 @click.option("--render", type=bool, default=False, help="Render environment or not")
 @click.option("--num_process", type=int, default=1, help="Number of process to run environment")
 @click.option("--lr_p", type=float, default=3e-4, help="Learning rate for Policy Net")
@@ -32,14 +31,13 @@ from td3 import TD3
 @click.option("--model_path", type=str, default="trained_models", help="Directory to store model")
 @click.option("--log_path", type=str, default="../log/", help="Directory to save logs")
 @click.option("--seed", type=int, default=123, help="Seed for reproducing")
-def main(env_id, dim_latent, render, num_process, lr_p, lr_v, gamma, polyak, target_action_noise_std, target_action_noise_clip,
+def main(env_id, render, num_process, lr_p, lr_v, gamma, polyak, target_action_noise_std, target_action_noise_clip,
          explore_size, memory_size, step_per_iter, batch_size, min_update_step, update_step, max_iter, eval_iter,
          save_iter, action_noise, policy_update_delay, model_path, log_path, seed):
-    base_dir = log_path + env_id + "/TD3_encoder_exp{}".format(seed)
+    base_dir = log_path + env_id + "/TD3_exp{}".format(seed)
     writer = SummaryWriter(base_dir)
 
     td3 = TD3(env_id,
-              dim_latent=dim_latent,
               render=render,
               num_process=num_process,
               memory_size=memory_size,

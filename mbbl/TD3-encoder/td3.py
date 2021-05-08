@@ -93,7 +93,7 @@ class TD3:
 
         if self.model_path:
             print("Loading Saved Model {}_td3_encoding.p".format(self.env_id))
-            self.policy_net, self.value_net_1, self.value_net_2, self.encodings.encoder, self.encodings.forward_dynamics, self.encodings.inverse_dynamics = pickle.load(
+            self.policy_net, self.value_net_1, self.value_net_2, self.encodings = pickle.load(
                 open('{}/{}_td3_encoding.p'.format(self.model_path, self.env_id), "rb"))
 
         self.policy_net_target.load_state_dict(self.policy_net.state_dict())
@@ -126,7 +126,11 @@ class TD3:
         while True:
             if render:
                 self.env.render()
-            action = self.choose_action(state, 0)
+            enco_state = FLOAT(state).unsqueeze(0).to(device)
+            with torch.no_grad():
+                enco_state = self.encodings.encoder.sample_prediction(enco_state)
+            enco_state = enco_state.cpu().numpy()[0]
+            action = self.choose_action(enco_state, 0)
             state, reward, done, _ = self.env.step(action)
 
             test_reward += reward
@@ -153,7 +157,7 @@ class TD3:
 
                 enco_state = FLOAT(state).unsqueeze(0).to(device)
                 with torch.no_grad():
-                    enco_state = self.encodings.encoder(enco_state)
+                    enco_state = self.encodings.encoder.sample_prediction(enco_state)
                 enco_state = enco_state.cpu().numpy()[0]
 
                 if self.render:
@@ -219,8 +223,8 @@ class TD3:
         batch_mask = FLOAT(batch.mask).to(device)
 
         with torch.no_grad():
-            enco_batch_state = self.encodings.encoder(batch_state)
-            enco_batch_next_state = self.encodings.encoder(batch_next_state)
+            enco_batch_state = self.encodings.encoder.sample_prediction(batch_state)
+            enco_batch_next_state = self.encodings.encoder.sample_prediction(batch_next_state)
 
         # update by TD3
         alg_step_stats = td3_step(self.policy_net, self.policy_net_target, self.value_net_1, self.value_net_target_1, self.value_net_2,
@@ -243,5 +247,5 @@ class TD3:
     def save(self, save_path):
         """save model"""
         check_path(save_path)
-        pickle.dump((self.policy_net, self.value_net_1, self.value_net_2, self.encodings.encoder, self.encodings.forward_dynamics, self.encodings.inverse_dynamics),
+        pickle.dump((self.policy_net, self.value_net_1, self.value_net_2, self.encodings),
                     open('{}/{}_td3_encoding.p'.format(save_path, self.env_id), 'wb'))

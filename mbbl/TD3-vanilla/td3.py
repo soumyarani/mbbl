@@ -14,13 +14,10 @@ from file_util import check_path
 from torch_util import device, FLOAT
 from zfilter import ZFilter
 
-from encoder import Encoder
-
 
 class TD3:
     def __init__(self,
                  env_id,
-                 dim_latent,
                  render=False,
                  num_process=1,
                  memory_size=1000000,
@@ -59,7 +56,6 @@ class TD3:
         self.policy_update_delay = policy_update_delay
         self.model_path = model_path
         self.seed = seed
-        self.dim_latent = dim_latent
 
         self._init_model()
 
@@ -91,11 +87,10 @@ class TD3:
         self.running_state = ZFilter((num_states,), clip=5)
 
         self.num_states = num_states
-        self.encodings = Encoder(self.num_states, self.dim_latent, self.num_actions)
 
         if self.model_path:
-            print("Loading Saved Model {}_td3_encoding.p".format(self.env_id))
-            self.policy_net, self.value_net_1, self.value_net_2, self.running_state, self.encodings.encoder, self.encodings.forward_dynamics, self.encodings.inverse_dynamics = pickle.load(
+            print("Loading Saved Model {}_td3.p".format(self.env_id))
+            self.policy_net, self.value_net_1, self.value_net_2, self.running_state = pickle.load(
                 open('{}/{}_td3.p'.format(self.model_path, self.env_id), "rb"))
 
         self.policy_net_target.load_state_dict(self.policy_net.state_dict())
@@ -206,8 +201,6 @@ class TD3:
         writer.add_scalar("rewards/max_reward", log['max_episode_reward'], i_iter)
         writer.add_scalar("rewards/num_steps", log['num_steps'], i_iter)
 
-        writer = self.encodings.update_writer(writer, i_iter)
-
     def update(self, batch, batch2, k_iter):
         """learn model"""
         batch_state = FLOAT(batch.state).to(device)
@@ -223,19 +216,9 @@ class TD3:
                                   self.target_action_noise_std, self.target_action_noise_clip, self.action_high,
                                   k_iter % self.policy_update_delay == 0)
 
-        
-        batch_state2 = FLOAT(batch2.state).to(device)
-        batch_action2 = FLOAT(batch2.action).to(device)
-        batch_reward2 = FLOAT(batch2.reward).to(device)
-        batch_next_state2 = FLOAT(batch2.next_state).to(device)
-        batch_mask2 = FLOAT(batch2.mask).to(device)
-
-        self.encodings.update_encoder(batch_state, batch_action, batch_reward, batch_next_state, 
-                                    batch_state2, batch_action2, batch_reward2, batch_next_state2)
-
 
     def save(self, save_path):
         """save model"""
         check_path(save_path)
-        pickle.dump((self.policy_net, self.value_net_1, self.value_net_2, self.running_state, self.encodings.encoder, self.encodings.forward_dynamics, self.encodings.inverse_dynamics),
-                    open('{}/{}_td3_encoding.p'.format(save_path, self.env_id), 'wb'))
+        pickle.dump((self.policy_net, self.value_net_1, self.value_net_2, self.running_state),
+                    open('{}/{}_td3.p'.format(save_path, self.env_id), 'wb'))

@@ -6,6 +6,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from ppo import PPO
+import multiprocessing
 
 
 @click.command()
@@ -34,7 +35,7 @@ def main(env_id, render, num_process, lr_p, lr_v, gamma, tau, epsilon, batch_siz
 
     ppo = PPO(env_id=env_id,
               render=render,
-              num_process=num_process,
+              num_process=multiprocessing.cpu_count(),
               min_batch_size=batch_size,
               lr_p=lr_p,
               lr_v=lr_v,

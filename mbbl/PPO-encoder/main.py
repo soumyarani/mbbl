@@ -21,7 +21,7 @@ import multiprocessing
 @click.option("--batch_size", type=int, default=4000, help="Batch size")
 @click.option("--ppo_mini_batch_size", type=int, default=500,
               help="PPO mini-batch size (default 0 -> don't use mini-batch update)")
-@click.option("--ppo_epochs", type=int, default=10, help="PPO step")
+@click.option("--ppo_epochs", type=int, default=20, help="PPO step")
 @click.option("--max_iter", type=int, default=1000, help="Maximum iterations to run")
 @click.option("--eval_iter", type=int, default=50, help="Iterations to evaluate the model")
 @click.option("--save_iter", type=int, default=50, help="Iterations to save the model")

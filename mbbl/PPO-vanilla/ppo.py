@@ -14,13 +14,11 @@ from env_util import get_env_info
 from file_util import check_path
 from torch_util import device, FLOAT
 from zfilter import ZFilter
-from encoder import Encoder
 
 
 class PPO:
     def __init__(self,
                  env_id,
-                 dim_latent,
                  render=False,
                  num_process=4,
                  min_batch_size=2048,
@@ -47,7 +45,6 @@ class PPO:
         self.min_batch_size = min_batch_size
         self.model_path = model_path
         self.seed = seed
-        self.dim_latent = dim_latent
 
         self._init_model()
 
@@ -60,19 +57,17 @@ class PPO:
         torch.manual_seed(self.seed)
         self.env.seed(self.seed)
 
-        self.policy_net = Policy(self.dim_latent, self.num_actions).to(device)
+        self.policy_net = Policy(self.num_states, self.num_actions).to(device)
 
-        self.value_net = Value(self.dim_latent).to(device)
+        self.value_net = Value(self.num_states).to(device)
         self.running_state = ZFilter((self.num_states,), clip=5)
 
-        self.encodings = Encoder(self.num_states, self.dim_latent, self.num_actions)
-
         if self.model_path:
-            print("Loading Saved Model {}_ppo_encoder.p".format(self.env_id))
-            self.policy_net, self.value_net, self.running_state, self.encodings = pickle.load(
-                open('{}/{}_ppo_encoder.p'.format(self.model_path, self.env_id), "rb"))
+            print("Loading Saved Model {}_ppo.p".format(self.env_id))
+            self.policy_net, self.value_net, self.running_state = pickle.load(
+                open('{}/{}_ppo.p'.format(self.model_path, self.env_id), "rb"))
 
-        self.collector = MemoryCollector(self.env, self.policy_net, self.encodings.encoder, 
+        self.collector = MemoryCollector(self.env, self.policy_net,
                                          render=self.render,
                                          running_state=self.running_state,
                                          num_process=self.num_process)
@@ -132,15 +127,14 @@ class PPO:
         batch_log_prob = FLOAT(batch.log_prob).to(device)
 
         with torch.no_grad():
-            enco_batch_state = self.encodings.encoder.sample_prediction(batch_state)
-            batch_value = self.value_net(enco_batch_state)
+            batch_value = self.value_net(batch_state)
 
         batch_advantage, batch_return = estimate_advantages(batch_reward, batch_mask, batch_value, self.gamma,
                                                             self.tau)
 
         alg_step_stats = {}
         if self.ppo_mini_batch_size:
-            batch_size = enco_batch_state.shape[0]
+            batch_size = batch_state.shape[0]
             mini_batch_num = int(
                 math.ceil(batch_size / self.ppo_mini_batch_size))
 
@@ -151,7 +145,7 @@ class PPO:
                 for i in range(mini_batch_num):
                     ind = index[
                         slice(i * self.ppo_mini_batch_size, min(batch_size, (i + 1) * self.ppo_mini_batch_size))]
-                    state, action, returns, advantages, old_log_pis = enco_batch_state[ind], batch_action[ind], \
+                    state, action, returns, advantages, old_log_pis = batch_state[ind], batch_action[ind], \
                         batch_return[
                         ind], batch_advantage[ind], \
                         batch_log_prob[
@@ -165,25 +159,14 @@ class PPO:
         else:
             for _ in range(self.ppo_epochs):
                 alg_step_stats = ppo_step(self.policy_net, self.value_net, self.optimizer_p, self.optimizer_v, 1,
-                                          enco_batch_state, batch_action, batch_return, batch_advantage, batch_log_prob,
+                                          batch_state, batch_action, batch_return, batch_advantage, batch_log_prob,
                                           self.clip_epsilon,
                                           1e-3)
-        
-        batch_state2 = FLOAT(permuted_batch.state).to(device)
-        batch_action2 = FLOAT(permuted_batch.action).to(device)
-        batch_reward2 = FLOAT(permuted_batch.reward).to(device)
-        batch_next_state2 = FLOAT(permuted_batch.next_state).to(device)
-        batch_mask2 = FLOAT(permuted_batch.mask).to(device)
-
-        self.encodings.update_encoder(batch_state, batch_action, batch_reward, batch_next_state, 
-                                    batch_state2, batch_action2, batch_reward2, batch_next_state2)
-
-        writer = self.encodings.update_writer(writer, i_iter)
 
         return alg_step_stats
 
     def save(self, save_path):
         """save model"""
         check_path(save_path)
-        pickle.dump((self.policy_net, self.value_net, self.running_state, self.encodings),
+        pickle.dump((self.policy_net, self.value_net, self.running_state),
                     open('{}/{}_ppo_encoder.p'.format(save_path, self.env_id), 'wb'))

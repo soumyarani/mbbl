@@ -117,7 +117,22 @@ class Encoder():
         self.fdyn_loss = nn.MSELoss()(pred_encoded_nstate1, encoded_nstate1) + nn.MSELoss()(pred_encoded_nstate2, encoded_nstate2)
         self.idyn_loss = nn.MSELoss()(pred_encoded_action1, action1) + nn.MSELoss()(pred_encoded_action2, action2)
 
-        self.encoder_loss = nn.MSELoss()(pred_encoded_nstate1, encoded_nstate1)
+        tensor_type = type(reward1)
+        enocder_values = tensor_type(reward1.size(0), 1).to(device)
+        enocder_targets = tensor_type(reward1.size(0), 1).to(device)
+
+        mu_fd1 , sigma_fd1 = self.forward_dynamics(encoded_state1, action1)
+        mu_id1 , sigma_id1 = self.inverse_dynamics(encoded_state1, pred_encoded_nstate1)
+        mu_fd2 , sigma_fd2 = self.forward_dynamics(encoded_state2, action2)
+        mu_id2 , sigma_id2 = self.inverse_dynamics(encoded_state2, pred_encoded_nstate2)
+
+        for i in range(reward1.size(0)):
+            enocder_values[i] = self.calc_L1(encoded_state1[i], encoded_state2[i])
+            enocder_targets[i] = torch.abs(reward1[i] - reward2[i]) + \
+                                0.01*self.calc_wasserstein(mu_fd1, sigma_fd1, mu_fd2, sigma_fd2) + \
+                                0.005*self.calc_wasserstein(mu_id1, sigma_id1, mu_id2, sigma_id2)
+
+        self.encoder_loss = nn.MSELoss()(enocder_values, enocder_targets)
 
         self.optimizer_fdyn.zero_grad()
         self.optimizer_idyn.zero_grad()
@@ -142,3 +157,14 @@ class Encoder():
         writer.add_scalar("encodings/inverse_dynamics_loss", id_loss, i_iter)
 
         return writer
+
+    def calc_wasserstein(self, mu1, sigma1, mu2, sigma2):
+
+        delta_m = torch.linalg.norm(mu1 - mu2)
+        delta_s = torch.linalg.norm(torch.sqrt(sigma1) - torch.sqrt(sigma2), 'fro')
+
+        return torch.sum(delta_m + delta_s)
+
+    def calc_L1(self, state1, state2):
+
+        return torch.linalg.norm((state1 - state2), ord=1)

@@ -6,7 +6,8 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from ppo import PPO
-import multiprocessing
+
+from torch.multiprocessing import set_start_method, cpu_count
 
 @click.command()
 @click.option("--env_id", type=str, default="HalfCheetah-v3", help="Environment Id")
@@ -36,7 +37,7 @@ def main(env_id, dim_latent, render, num_process, lr_p, lr_v, gamma, tau, epsilo
     ppo = PPO(env_id=env_id,
               dim_latent=dim_latent,
               render=render,
-              num_process=multiprocessing.cpu_count(),
+              num_process=cpu_count(),
               min_batch_size=batch_size,
               lr_p=lr_p,
               lr_v=lr_v,

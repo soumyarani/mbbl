@@ -7,7 +7,6 @@ import torch
 from replay_memory import Memory
 from torch_util import device, FLOAT
 
-
 def collect_samples(pid, queue, env, policy, encoder, render, running_state, custom_reward, min_batch_size):
     torch.set_num_threads(1)
     if pid > 0:
@@ -35,7 +34,7 @@ def collect_samples(pid, queue, env, policy, encoder, render, running_state, cus
             if render:
                 env.render()
             
-            enco_state = FLOAT(state).unsqueeze(0).to(device)
+            enco_state = FLOAT(state).unsqueeze(0) #.to(device)
             with torch.no_grad():
                 enco_state = encoder.sample_prediction(enco_state)
             enco_state = enco_state.cpu().numpy()[0]

@@ -14,7 +14,6 @@ paper/
 *.swo
 *.swn
 summary/
-log/
 *.jpg
 tool/batch_summary_*
 video/

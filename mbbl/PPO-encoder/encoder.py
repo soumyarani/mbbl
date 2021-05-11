@@ -129,8 +129,8 @@ class Encoder():
         for i in range(reward1.size(0)):
             enocder_values[i] = self.calc_L1(encoded_state1[i], encoded_state2[i])
             enocder_targets[i] = torch.abs(reward1[i] - reward2[i]) + \
-                                0.01*self.calc_wasserstein(mu_fd1, sigma_fd1, mu_fd2, sigma_fd2) + \
-                                0.005*self.calc_wasserstein(mu_id1, sigma_id1, mu_id2, sigma_id2)
+                                0.99*self.calc_wasserstein(mu_fd1, sigma_fd1, mu_fd2, sigma_fd2) + \
+                                0.99*self.calc_wasserstein(mu_id1, sigma_id1, mu_id2, sigma_id2)
 
         self.encoder_loss = nn.MSELoss()(enocder_values, enocder_targets)
 

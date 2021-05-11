@@ -11,7 +11,7 @@ from torch.multiprocessing import set_start_method, cpu_count
 
 @click.command()
 @click.option("--env_id", type=str, default="HalfCheetah-v3", help="Environment Id")
-@click.option("--dim_latent", type=int, default=10, help="Number of Latent Observations")
+@click.option("--dim_latent", type=int, default=32, help="Number of Latent Observations")
 @click.option("--render", type=bool, default=False, help="Render environment or not")
 @click.option("--num_process", type=int, default=3, help="Number of process to run environment")
 @click.option("--lr_p", type=float, default=3e-4, help="Learning rate for Policy Net")
@@ -37,7 +37,7 @@ def main(env_id, dim_latent, render, num_process, lr_p, lr_v, gamma, tau, epsilo
     ppo = PPO(env_id=env_id,
               dim_latent=dim_latent,
               render=render,
-              num_process=cpu_count(),
+              num_process=20, #cpu_count(),
               min_batch_size=batch_size,
               lr_p=lr_p,
               lr_v=lr_v,

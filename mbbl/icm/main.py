@@ -1,17 +1,6 @@
 #!/usr/bin/env python
-# coding: utf-8
-
-# # Curiosity-Driven Exploration
-
-# In[1]:
-
 
 import gym
-
-
-# In[2]:
-
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -19,32 +8,18 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.distributions import Categorical
-
-
-# In[3]:
-
+import matplotlib
+import matplotlib.pyplot as plt
 
 import collections
 
-
-# In[4]:
-
-
 env = gym.make("HalfCheetah-v2")
-
-
-# In[5]:
-
 
 #utils
 def set_init(layers):
     for layer in layers:
         nn.init.normal_(layer.weight, mean=0., std=0.1)
         nn.init.constant_(layer.bias, 0.)
-
-
-# In[6]:
-
 
 #continuous
 class Actor(nn.Module):
@@ -91,9 +66,6 @@ class Critic(nn.Module):
         return est_reward
 
 
-# In[16]:
-
-
 class InverseModel(nn.Module):
     def __init__(self, n_actions, hidden_dims):
         super(InverseModel, self).__init__()
@@ -134,27 +106,17 @@ class FeatureExtractor(nn.Module):
         return y
 
 
-# In[17]:
-
-
 class PGLoss(nn.Module):
     def __init__(self):
         super(PGLoss, self).__init__()
     
     def forward(self, action_log_prob, reward):
-        
         loss = -torch.mean(action_log_prob*reward)
         return loss
 
 
-# In[18]:
-
-
 def to_tensor(x, dtype=None):
-    return torch.tensor(x, dtype=dtype).unsqueeze(0)
-
-
-# In[19]:
+    return torch.tensor(x, dtype=dtype).clone().detach().requires_grad_(True)
 
 
 class ConfigArgs:
@@ -165,13 +127,10 @@ class ConfigArgs:
     lr_critic = 0.001
     lr_actor = 0.002
     lr_icm = 0.001
-    max_eps = 100000
-    sparse_mode = True
+    max_eps = 1000000
+    sparse_mode = False
 
 args = ConfigArgs()
-
-
-# In[20]:
 
 
 # Actor Critic
@@ -179,16 +138,10 @@ actor = Actor(env.action_space.shape[0], env.observation_space.shape[0])
 critic = Critic(space_dims=env.observation_space.shape[0], hidden_dims=512)
 
 
-# In[21]:
-
-
 # ICM
 feature_extractor = FeatureExtractor(env.observation_space.shape[0], 512)
 forward_model = ForwardModel(env.action_space.shape[0], 512)
 inverse_model = InverseModel(env.action_space.shape[0], 512)
-
-
-# In[22]:
 
 
 # Actor Critic
@@ -200,15 +153,10 @@ icm_params = list(feature_extractor.parameters()) + list(forward_model.parameter
 icm_optim = torch.optim.Adam(icm_params, lr=args.lr_icm)
 
 
-# In[23]:
-
 
 pg_loss = PGLoss()
 mse_loss = nn.MSELoss()
 xe_loss = nn.GaussianNLLLoss()
-
-
-# In[ ]:
 
 
 global_step = 0
@@ -243,7 +191,7 @@ while n_eps < args.max_eps:
         # interaction with environment
         #clip
         control = np.clip(action.numpy(), env.action_space.low, env.action_space.high)
-        if n_eps%10000 == 0: env.render()
+        #if n_eps%10000 == 0: env.render()
         next_obs, reward, done, info = env.step(control)
         next_obs = to_tensor(next_obs, dtype=torch.float)
 
@@ -261,7 +209,7 @@ while n_eps < args.max_eps:
         est_next_features = forward_model(t_action, features[0:1])
 
         # Loss - ICM
-        forward_loss = mse_loss(est_next_features, features[1])        
+        forward_loss = mse_loss(est_next_features, features[1])   
         inverse_loss = xe_loss(inverse_mu.view(6, ).data, action.detach(), inverse_var.view(6, ).data)
         icm_loss = (1-args.beta)*inverse_loss + args.beta*forward_loss
         
@@ -278,7 +226,7 @@ while n_eps < args.max_eps:
         
         # Loss - Actor Critic
         actor_loss = pg_loss(log_prob, to_tensor(advantage, dtype = torch.float).detach())
-        critic_loss = mse_loss(v, c_target.detach())
+        critic_loss = mse_loss(v, c_target.detach())  
         ac_loss = actor_loss + critic_loss
         
         # Update
@@ -305,32 +253,14 @@ while n_eps < args.max_eps:
 
 # ## Visualization
 
-# In[ ]:
-
-
-import matplotlib
-import matplotlib.pyplot as plt
-get_ipython().run_line_magic('matplotlib', 'inline')
-
-
-# In[ ]:
-
 
 plt.plot(reward_lst)
 plt.ylabel('Score')
-plt.show()
-
-
-# In[ ]:
-
+plt.savefig("rewards.png")
 
 plt.plot(mva_lst)
 plt.ylabel('Moving Average Score')
-plt.show()
-
-
-# In[ ]:
-
+plt.savefig("Moving_avg_score.png")
 
 np.save('curiosity-Half-Cheetah-mva.npy', np.array(mva_lst))
 

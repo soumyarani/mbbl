@@ -63,9 +63,10 @@ class PPO:
         self.running_state = ZFilter((self.num_states,), clip=5)
 
         if self.model_path:
-            print("Loading Saved Model {}_ppo.p".format(self.env_id))
-            self.policy_net, self.value_net, self.running_state = pickle.load(
-                open('{}/{}_ppo.p'.format(self.model_path, self.env_id), "rb"))
+            print("Loading Saved Model {}_ppo.p from {}/{}_ppo.p".format(self.env_id, self.model_path, self.env_id))
+            data = pickle.load(
+                open('{}/{}_ppo.p'.format(self.model_path, self.env_id), "rb")) 
+            self.policy_net, self.value_net, self.running_state = data.policy_net, data.value_net, data.running_state
 
         self.collector = MemoryCollector(self.env, self.policy_net,
                                          render=self.render,
